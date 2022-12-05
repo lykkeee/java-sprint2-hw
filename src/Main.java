@@ -3,10 +3,8 @@ import java.util.Scanner;
 public class Main {
 
     public static void main(String[] args) {
-        YearlyReports yearlyReports = new YearlyReports();
-        MonthlyReports monthlyReports = new MonthlyReports();
 
-        Checker checker = new Checker(monthlyReports, yearlyReports);
+        ReportEngine reportEngine = new ReportEngine();
         Scanner scanner = new Scanner(System.in);
 
 
@@ -14,19 +12,16 @@ public class Main {
             printMenu();
             int command = scanner.nextInt();
             if(command == 1) {
-                for (int i = 1; i < 4; i++) {
-                    monthlyReports.loadReport(i, "resources/m.20210" + i + ".csv");
-                }
+                reportEngine.loadMonthlyReport();
             } else if (command == 2) {
-                yearlyReports.loadReport(2021, "resources/y.2021.csv");
+                reportEngine.loadYearlyReport();
             } else if (command == 3) {
-                boolean answer = checker.check();
-                checker.check();
+                boolean answer = reportEngine.check();
                 System.out.println("Результат проверки: " + answer);
             } else if (command == 4) {
-                monthlyReports.getMonthInfo();
+                reportEngine.getMonthInfo();
             } else if (command == 5) {
-                yearlyReports.getYearReport();
+               reportEngine.getYearReport();
             } else if (command == 0) {
                 break;
             } else {
