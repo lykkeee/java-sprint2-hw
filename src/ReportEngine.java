@@ -3,20 +3,18 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 public class ReportEngine {
-    public HashMap<Integer, YearlyReport> yearlyReports = new HashMap<>();
+    public YearlyReport yearlyReport = new YearlyReport();
 
     public HashMap<Integer, MonthlyReport> monthlyReports = new HashMap<>();
 
-
-    public boolean check() {
-        boolean flag = true;
-        HashMap<Integer, Integer> monthlyProfitByMonthlyReport = new HashMap<>();
-        HashMap<Integer, Integer> monthlyProfitByYearlyReport = new HashMap<>();
-        HashMap<Integer, Integer> monthlyExpenseByMonthlyReport = new HashMap<>();
-        HashMap<Integer, Integer> monthlyExpenseByYearlyReport = new HashMap<>();
-
+    HashMap<Integer, Integer> monthlyProfitByMonthlyReport = new HashMap<>();
+    HashMap<Integer, Integer> monthlyProfitByYearlyReport = new HashMap<>();
+    HashMap<Integer, Integer> monthlyExpenseByMonthlyReport = new HashMap<>();
+    HashMap<Integer, Integer> monthlyExpenseByYearlyReport = new HashMap<>();
+    public void saveStatistics() {
         for (Integer month : monthlyReports.keySet()) {
             for (MonthData monthData : monthlyReports.get(month).informationFromReport) {
                 if (monthData.isExpense) {
@@ -26,8 +24,8 @@ public class ReportEngine {
                 }
             }
         }
-        for (Integer year : yearlyReports.keySet()) {
-            for (YearData yearData : yearlyReports.get(year).informationFromReport) {
+        if(yearlyReport.informationFromReport != null) {
+            for (YearData yearData : yearlyReport.informationFromReport) {
                 if (yearData.isExpense) {
                     monthlyExpenseByYearlyReport.put(yearData.month, yearData.amount);
                 } else {
@@ -35,17 +33,25 @@ public class ReportEngine {
                 }
             }
         }
+    }
 
+    public boolean checkIsMonthlyReportLoaded() {
         boolean isMonthlyReportLoaded = false;
         for (int month = 1; month < 13; month++) {
             if (monthlyReports.get(month) != null) {
                 isMonthlyReportLoaded = true;
             }
         }
-        if (yearlyReports.get(21) == null) {
+        return isMonthlyReportLoaded;
+    }
+
+    public boolean check() {
+        saveStatistics();
+        boolean flag = true;
+        if (yearlyReport.informationFromReport == null) {
             System.out.println("Загрузите годовой отчёт");
             flag = false;
-        } else if (!isMonthlyReportLoaded) {
+        } else if (!checkIsMonthlyReportLoaded()) {
             System.out.println("Загрузите месячный отчет");
             flag = false;
         } else {
@@ -67,9 +73,9 @@ public class ReportEngine {
         return flag;
     }
 
-    public String readFileContents(String path) {
+    List<String> readFileContents(String path) {
         try {
-            return Files.readString(Path.of(path));
+            return Files.readAllLines(Path.of(path));
         } catch (IOException e) {
             return null;
         }
@@ -79,13 +85,14 @@ public class ReportEngine {
 
     public void loadMonthlyReport () {
         for (int month = 1; month < 13; month++) {
-            monthlyReports.put(month, new MonthlyReport());
-            monthlyReports.get(month).informationFromReport = new ArrayList<>();
-            String content = readFileContents("resources/m.20210" + month + ".csv");
+            MonthlyReport monthlyReport = new MonthlyReport();
+            monthlyReport.year = 2021;
+            monthlyReport.month = month;
+            List<String> content = readFileContents("resources/m.20210" + month + ".csv");
             if (content != null) {
-                String[] lines = content.split("\r?\n");
-                for (int i = 1; i < lines.length; i++) {
-                    String line = lines[i];
+                monthlyReport.informationFromReport = new ArrayList<>();
+                for (int i = 1; i < content.size(); i++) {
+                    String line = content.get(i);
                     String[] parts = line.split(",");
                     String itemName = parts[0];
                     boolean isExpense = Boolean.parseBoolean(parts[1]);
@@ -94,17 +101,19 @@ public class ReportEngine {
 
 
                     MonthData monthData = new MonthData(itemName, isExpense, quantity, sumOfOne);
-                    monthlyReports.get(month).informationFromReport.add(monthData);
+                    monthlyReport.informationFromReport.add(monthData);
                 }
+                monthlyReports.put(month, monthlyReport);
                 System.out.println("Отчёт за месяц №" + month + " успешно считан");
             } else {
-                monthlyReports.remove(month);
                 System.out.println("Отчёт за месяц № " + month + " не считан. Возможно файл не находится в нужной директории");
             }
+
         }
     }
 
     public void getMonthInfo() {
+
         for (int month = 1; month < 13; month++) {
             if(monthlyReports.get(month) != null) {
                 int maxProfit = 0;
@@ -137,64 +146,59 @@ public class ReportEngine {
     }
 
     public void loadYearlyReport() {
-        for (int year = 21; year < 23; year++) {
-            yearlyReports.put(year, new YearlyReport());
-            yearlyReports.get(year).informationFromReport = new ArrayList<>();
-            String content = readFileContents("resources/y.20" + year + ".csv");
-            if (content != null) {
-                String[] lines = content.split("\r?\n");
-                for (int i = 1; i < lines.length; i++) {
-                    String line = lines[i];
-                    String[] parts = line.split(",");
-                    int month = Integer.parseInt(parts[0]);
-                    int amount = Integer.parseInt(parts[1]);
-                    boolean isExpense = Boolean.parseBoolean(parts[2]);
+        List<String> content = readFileContents("resources/y.2021.csv");
+        yearlyReport.informationFromReport = new ArrayList<>();
+        if (content != null) {
+            for (int i = 1; i < content.size(); i++) {
+                String line = content.get(i);
+                String[] parts = line.split(",");
+                int month = Integer.parseInt(parts[0]);
+                int amount = Integer.parseInt(parts[1]);
+                boolean isExpense = Boolean.parseBoolean(parts[2]);
 
-                    YearData yearData = new YearData(month, amount, isExpense);
-                    yearlyReports.get(year).informationFromReport.add(yearData);
-                }
-                System.out.println("Отчёт за 20" + year + " год успешно считан");
-            } else {
-                yearlyReports.remove(year);
-                System.out.println("Отчёт за 20" + year + " год не считан. Возможно файл не находится в нужной директории");
+                YearData yearData = new YearData(month, amount, isExpense);
+                yearlyReport.informationFromReport.add(yearData);
             }
+            System.out.println("Отчёт за 2021 год успешно считан");
+        } else {
+            System.out.println("Отчёт за 2021 год не считан. Возможно файл не находится в нужной директории");
         }
+
     }
 
     public void getYearReport() {
-        for (int year = 21; year < 23; year++) {
-            if (yearlyReports.get(year) != null) {
-                System.out.println("Год 20" + year);
-                int month = 0;
-                int profit = 0;
-                int firstNumber = 0;
-                int amountProfit = 0;
-                int amountExpense = 0;
+        if (yearlyReport.informationFromReport != null) {
+            System.out.println("Год 2021");
+            int month = 0;
+            int profit = 0;
+            int firstNumber = 0;
+            int amountProfit = 0;
+            int amountExpense = 0;
 
-                for (YearData yearData : yearlyReports.get(year).informationFromReport) {
-                    if (!yearData.isExpense) {
-                        amountProfit += yearData.amount;
-                    } else {
-                        amountExpense += yearData.amount;
-                    }
-                    if (month == yearData.month) {
-                        if (!yearData.isExpense) {
-                            profit = yearData.amount - firstNumber;
-                        } else {
-                            profit = firstNumber - yearData.amount;
-                        }
-                        System.out.println("Месяц №" + yearData.month + " прибыль: " + profit);
-                    } else {
-                        firstNumber = yearData.amount;
-                    }
-                    month = yearData.month;
+            for (YearData yearData : yearlyReport.informationFromReport) {
+                if (!yearData.isExpense) {
+                    amountProfit += yearData.amount;
+                } else {
+                    amountExpense += yearData.amount;
                 }
-                System.out.println("Средний доход за год: " + amountProfit / 12);
-                System.out.println("Средний расход за год: " + amountExpense / 12);
-            } else {
-                System.out.println("Необходимо загрузить отчёт за 20" + year + " год");
+                if (month == yearData.month) {
+                    if (!yearData.isExpense) {
+                        profit = yearData.amount - firstNumber;
+                    } else {
+                        profit = firstNumber - yearData.amount;
+                    }
+                    System.out.println("Месяц №" + yearData.month + " прибыль: " + profit);
+                } else {
+                    firstNumber = yearData.amount;
+                }
+                month = yearData.month;
             }
+            System.out.println("Средний доход за год: " + amountProfit / 12);
+            System.out.println("Средний расход за год: " + amountExpense / 12);
+        } else {
+            System.out.println("Необходимо загрузить отчёт за 2021 год");
         }
+
     }
 
 

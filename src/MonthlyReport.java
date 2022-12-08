@@ -1,8 +1,9 @@
 import java.util.ArrayList;
 
-public class MonthlyReport {   //Я не до конца понял правильно я сделал или нет, но если здесь хранить еще и год,
-                               //то нужна новая HashMap<Integer(год),HashMap<Integer, MonthlyReport>>? Все остальные замечания вроде как испрвил.
+public class MonthlyReport {
 
     public ArrayList<MonthData> informationFromReport;
+    int year = 0;
+    int month = 0;
 
 }
